@@ -28,7 +28,7 @@ exports.createUser = async (userData) => {
   return { id, ...userData };
 };
 
-// 🔐 LOGIN FUNCTION (ADDED FOR PHASE 2)
+
 exports.loginUser = async (email) => {
   const [rows] = await db.execute(
     `SELECT users.*, roles.name AS role_name

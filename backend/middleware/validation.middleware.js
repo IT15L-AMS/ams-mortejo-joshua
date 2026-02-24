@@ -1,4 +1,4 @@
-// validation.middleware.js
+
 exports.validateRegister = (req, res, next) => {
   const { fullName, email, password, role } = req.body;
 
@@ -6,13 +6,13 @@ exports.validateRegister = (req, res, next) => {
     return res.status(400).json({ message: "All fields are required" });
   }
 
-  // Email basic regex
+  
   const emailRegex = /\S+@\S+\.\S+/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: "Invalid email format" });
   }
 
-  // Password length
+  
   if (password.length < 6) {
     return res.status(400).json({ message: "Password must be at least 6 characters" });
   }

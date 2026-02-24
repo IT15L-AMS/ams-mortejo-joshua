@@ -38,11 +38,11 @@ exports.register = async (req, res, next) => {
     });
 
   } catch (error) {
-    next(error); // 🔹 pass error to centralized handler
+    next(error); // 🔹 
   }
 };
 
-// 🔐 LOGIN FUNCTION (PHASE 2)
+
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -82,6 +82,6 @@ exports.login = async (req, res, next) => {
     });
 
   } catch (error) {
-    next(error); // 🔹 pass error to centralized handler
+    next(error); 
   }
 };

@@ -9,7 +9,7 @@ app.use(express.json());
 
 app.use("/auth", authRoutes);
 
-// Centralized error handler
+
 const { errorHandler } = require("./middleware/error.middleware");
 app.use(errorHandler);
 
