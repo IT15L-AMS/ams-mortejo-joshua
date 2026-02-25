@@ -3,24 +3,41 @@ const hashPassword = require("../utils/hash");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
+// ===============================
+// 🔐 REGISTER
+// ===============================
 exports.register = async (req, res, next) => {
   try {
-    const { fullName, email, password, role } = req.body;
+    let { fullName, email, password, role } = req.body;
 
+    // Basic validation
     if (!fullName || !email || !password || !role) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    // 🔐 Normalize email
+    email = email.toLowerCase().trim();
+
+    // 🔐 Password strength validation
+    if (password.length < 8) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters long"
+      });
+    }
+
+    // Check duplicate email
     const existingUser = await authService.findUserByEmail(email);
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
     }
 
+    // Validate role
     const roleRecord = await authService.findRoleByName(role);
     if (!roleRecord) {
       return res.status(400).json({ message: "Invalid role" });
     }
 
+    // Hash password
     const hashedPassword = await hashPassword(password);
 
     const user = await authService.createUser({
@@ -30,19 +47,29 @@ exports.register = async (req, res, next) => {
       role_id: roleRecord.id
     });
 
-    delete user.password;
+    // 🔐 STEP 4 — HIDE SENSITIVE DATA (Whitelist Safe Fields Only)
+    const rawUser = user.toJSON ? user.toJSON() : user;
+
+    const safeUser = {
+      id: rawUser.id,
+      full_name: rawUser.full_name,
+      email: rawUser.email,
+      role_id: rawUser.role_id
+    };
 
     res.status(201).json({
       message: "User registered successfully",
-      user
+      user: safeUser
     });
 
   } catch (error) {
-    next(error); // 🔹 
+    next(error);
   }
 };
 
-
+// ===============================
+// 🔐 LOGIN
+// ===============================
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -51,7 +78,9 @@ exports.login = async (req, res, next) => {
       return res.status(400).json({ message: "Email and password required" });
     }
 
-    const user = await authService.loginUser(email);
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await authService.loginUser(normalizedEmail);
 
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -63,6 +92,11 @@ exports.login = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    // 🔐 Ensure JWT secret exists
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is not defined");
+    }
+
     const token = jwt.sign(
       {
         id: user.id,
@@ -70,18 +104,74 @@ exports.login = async (req, res, next) => {
         role: user.role_name
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || "1h"
+      }
     );
 
-    delete user.password;
+    // 🔐 STEP 4 — HIDE SENSITIVE DATA (Whitelist Safe Fields Only)
+    const rawUser = user.toJSON ? user.toJSON() : user;
+
+    const safeUser = {
+      id: rawUser.id,
+      full_name: rawUser.full_name,
+      email: rawUser.email,
+      role: rawUser.role_name
+    };
 
     res.status(200).json({
       message: "Login successful",
       token,
-      user
+      user: safeUser
     });
 
   } catch (error) {
-    next(error); 
+    next(error);
+  }
+};
+
+// ===============================
+// 🔐 ADMIN ONLY ROUTES
+// ===============================
+
+// GET /users
+exports.getAllUsers = async (req, res, next) => {
+  try {
+    const users = await authService.getAllUsers();
+
+    // 🔐 STEP 4 — HIDE SENSITIVE DATA
+    const cleanUsers = users.map(u => {
+      const data = u.toJSON ? u.toJSON() : u;
+
+      return {
+        id: data.id,
+        full_name: data.full_name,
+        email: data.email,
+        role_id: data.role_id
+      };
+    });
+
+    res.status(200).json({ users: cleanUsers });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// DELETE /users/:id
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const deleted = await authService.deleteUser(id);
+
+    if (!deleted) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ message: "User deleted successfully" });
+
+  } catch (error) {
+    next(error);
   }
 };

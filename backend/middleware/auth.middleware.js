@@ -1,26 +1,74 @@
 const jwt = require("jsonwebtoken");
 
+// ===============================
+// 🔐 Authenticate JWT token
+// ===============================
 exports.authenticateToken = (req, res, next) => {
-  
-  const authHeader = req.headers["authorization"];
+  const authHeader = req.headers['authorization'];
 
-  
-  const token = authHeader && authHeader.split(" ")[1];
-
-  
-  if (!token) {
-    return res.status(401).json({ message: "Access denied. No token provided." });
+  if (!authHeader) {
+    return res.status(401).json({
+      message: "Access denied. No token provided."
+    });
   }
 
-  
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid or expired token." });
-    }
+  const token = authHeader.split(" ")[1]; // Bearer <token>
 
-    
-    req.user = user;
+  if (!token) {
+    return res.status(401).json({
+      message: "Access denied. No token provided."
+    });
+  }
+
+  // 🔐 Ensure JWT secret exists
+  if (!process.env.JWT_SECRET) {
+    return res.status(500).json({
+      message: "Server configuration error."
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    req.user = decoded; // attach user info to request
 
     next();
-  });
+  } catch (error) {
+
+    // 🔐 Handle expired token
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        message: "Token expired. Please login again."
+      });
+    }
+
+    // 🔐 Handle invalid token
+    return res.status(403).json({
+      message: "Invalid token."
+    });
+  }
+};
+
+// ===============================
+// 🔐 Role-Based Authorization (RBAC)
+// ===============================
+exports.authorizeRoles = (...allowedRoles) => {
+  return (req, res, next) => {
+
+    // Ensure authentication ran first
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Unauthorized. Please login."
+      });
+    }
+
+    // Check role permission
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: "Forbidden. You do not have permission to access this resource."
+      });
+    }
+
+    next();
+  };
 };
