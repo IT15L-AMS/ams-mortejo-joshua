@@ -30,11 +30,17 @@ exports.authenticateToken = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.user = decoded; // attach user info to request
+    req.user = decoded; // Attach user info to request
+
+    // 🔐 Ensure the user is a student before proceeding
+    if (req.user.role !== 'Student') {
+      return res.status(403).json({
+        message: "Forbidden. You are not authorized to access this resource."
+      });
+    }
 
     next();
   } catch (error) {
-
     // 🔐 Handle expired token
     if (error.name === "TokenExpiredError") {
       return res.status(401).json({
@@ -54,7 +60,6 @@ exports.authenticateToken = (req, res, next) => {
 // ===============================
 exports.authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
-
     // Ensure authentication ran first
     if (!req.user) {
       return res.status(401).json({

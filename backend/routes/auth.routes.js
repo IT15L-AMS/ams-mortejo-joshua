@@ -36,4 +36,20 @@ router.get(
 router.get("/users", authenticateToken, authorizeRoles("Admin"), authController.getAllUsers);
 router.delete("/users/:id", authenticateToken, authorizeRoles("Admin"), authController.deleteUser);
 
+// 🔹 Instructor-only route (RBAC)
+router.get(
+  "/instructor/dashboard",
+  authenticateToken,
+  authorizeRoles("Instructor"),
+  authController.getInstructorDashboard
+);
+
+// 🔹 Registrar-only route (RBAC)
+router.get(
+  "/registrar/dashboard",
+  authenticateToken,
+  authorizeRoles("Registrar"),
+  authController.getRegistrarDashboard
+);
+
 module.exports = router;

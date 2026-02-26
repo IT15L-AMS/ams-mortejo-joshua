@@ -109,6 +109,8 @@ exports.login = async (req, res, next) => {
       }
     );
 
+      
+
     // 🔐 STEP 4 — HIDE SENSITIVE DATA (Whitelist Safe Fields Only)
     const rawUser = user.toJSON ? user.toJSON() : user;
 
@@ -131,10 +133,109 @@ exports.login = async (req, res, next) => {
 };
 
 // ===============================
+// 🔐 STUDENT DASHBOARD
+// ===============================
+exports.getStudentDashboard = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // Extract user ID from the JWT token
+
+    // Fetch student-specific data (courses, grades, year level, major)
+    const studentData = await authService.getStudentDashboardData(userId);
+
+    if (!studentData) {
+      return res.status(404).json({ message: "Student data not found" });
+    }
+
+    res.status(200).json({
+      message: "Student dashboard data fetched successfully",
+      student: studentData
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin view all students
+exports.getAllStudents = async (req, res, next) => {
+  try {
+    const students = await authService.getAllStudents();
+    res.status(200).json(students);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin view all courses
+exports.getAllCourses = async (req, res, next) => {
+  try {
+    const courses = await authService.getAllCourses();
+    res.status(200).json(courses);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin view all enrollments
+exports.getAllEnrollments = async (req, res, next) => {
+  try {
+    const enrollments = await authService.getAllEnrollments();
+    res.status(200).json(enrollments);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin view all grades
+exports.getAllGrades = async (req, res, next) => {
+  try {
+    const grades = await authService.getAllGrades();
+    res.status(200).json(grades);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get Instructor Dashboard Data
+exports.getInstructorDashboard = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // Extract user ID from JWT token
+
+    // Fetch instructor-specific data (courses, grades)
+    const instructorData = await authService.getInstructorDashboardData(userId);
+
+    if (!instructorData) {
+      return res.status(404).json({ message: "Instructor data not found" });
+    }
+
+    res.status(200).json({
+      message: "Instructor dashboard data fetched successfully",
+      instructor: instructorData
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get Registrar Dashboard Data
+exports.getRegistrarDashboard = async (req, res, next) => {
+  try {
+    const registrarData = await authService.getRegistrarDashboardData();
+
+    res.status(200).json({
+      message: "Registrar dashboard data fetched successfully",
+      registrar: registrarData
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ===============================
 // 🔐 ADMIN ONLY ROUTES
 // ===============================
-
-// GET /users
 exports.getAllUsers = async (req, res, next) => {
   try {
     const users = await authService.getAllUsers();
